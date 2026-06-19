@@ -100,7 +100,7 @@ const CellComponent = (p: CellViewProps): JSX.Element => {
           key={popKey}
           className={popKey ? 'animate-pop' : undefined}
           style={{
-            fontSize: '5.4cqw',
+            fontSize: '6.4cqw',
             lineHeight: 1,
             fontWeight: p.sameValue ? 700 : p.given ? 600 : 500,
             color: valueColor(p),
@@ -128,7 +128,7 @@ const CellComponent = (p: CellViewProps): JSX.Element => {
                 key={d}
                 className="flex items-center justify-center"
                 style={{
-                  fontSize: '2.5cqw',
+                  fontSize: '2.8cqw',
                   lineHeight: 1,
                   fontWeight: emph ? 700 : 500,
                   color: emph ? 'var(--accent)' : 'var(--candidate)',
