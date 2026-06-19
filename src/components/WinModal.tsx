@@ -3,6 +3,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useUIStore } from '../store/uiStore';
 import { DIFFICULTIES } from '../engine/types';
 import { formatTime } from '../hooks/useTimer';
+import { Confetti } from './Confetti';
 
 export const WinModal = (): JSX.Element | null => {
   const open = useUIStore((s) => s.winOpen);
@@ -34,6 +35,8 @@ export const WinModal = (): JSX.Element | null => {
         style={{ background: 'rgba(0,0,0,0.5)' }}
         onClick={close}
       />
+
+      {isWin && <Confetti />}
 
       {/* Tasteful completion sweep */}
       {isWin && (

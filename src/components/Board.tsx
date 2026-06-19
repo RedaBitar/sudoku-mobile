@@ -1,7 +1,9 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
+  useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent,
 } from 'react';
@@ -33,6 +35,27 @@ export const Board = (): JSX.Element => {
   const paused = useGameStore((s) => s.paused);
   const selectCell = useGameStore((s) => s.selectCell);
   const resume = useGameStore((s) => s.resume);
+  const feedback = useGameStore((s) => s.feedback);
+
+  // Cells that should flash because a row/column/box was just completed.
+  const [cleared, setCleared] = useState<{ cells: Set<number>; key: number }>({
+    cells: new Set(),
+    key: 0,
+  });
+  const lastClear = useRef(0);
+  useEffect(() => {
+    if (!feedback || feedback.id === lastClear.current) return;
+    lastClear.current = feedback.id;
+    if (!feedback.mistake && feedback.clearedCells.length > 0) {
+      setCleared({ cells: new Set(feedback.clearedCells), key: feedback.id });
+      const t = window.setTimeout(
+        () => setCleared({ cells: new Set(), key: 0 }),
+        750,
+      );
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [feedback]);
 
   const settings = useSettingsStore((s) => s.settings);
   const reducedMotion = usePrefersReducedMotion();
@@ -152,6 +175,7 @@ export const Board = (): JSX.Element => {
             selectedValue !== 0 &&
             cell.value === selectedValue;
           const peer = peerSet?.has(i) ?? false;
+          const celebrate = cleared.cells.has(i);
           return (
             <Cell
               key={i}
@@ -165,6 +189,9 @@ export const Board = (): JSX.Element => {
               peer={peer}
               emphasizeCandidate={emphasizeCandidate}
               reducedMotion={reducedMotion}
+              celebrate={celebrate}
+              celebrateDelay={celebrate ? ((i % 9) + Math.floor(i / 9)) * 32 : 0}
+              celebrateKey={cleared.key}
               onSelect={selectCell}
             />
           );

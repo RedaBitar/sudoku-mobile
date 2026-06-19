@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
 import { useTimer } from '../hooks/useTimer';
+import { useHaptics } from '../hooks/useHaptics';
 import { TopBar } from './TopBar';
 import { Board } from './Board';
 import { Controls } from './Controls';
@@ -17,8 +18,21 @@ export const GameScreen = (): JSX.Element => {
   const toggleNotesMode = useGameStore((s) => s.toggleNotesMode);
   const undo = useGameStore((s) => s.undo);
   const generating = useGameStore((s) => s.generating);
+  const feedback = useGameStore((s) => s.feedback);
 
   const anyOverlayOpen = useUIStore((s) => s.anyOverlayOpen);
+
+  // Drive haptics from input feedback: one tap on a normal entry, a triple
+  // bump on a mistake, and a "well done" on clearing a unit or finishing.
+  const haptics = useHaptics();
+  const lastHaptic = useRef(0);
+  useEffect(() => {
+    if (!feedback || feedback.id === lastHaptic.current) return;
+    lastHaptic.current = feedback.id;
+    if (feedback.solved || feedback.clearedCells.length > 0) haptics('success');
+    else if (feedback.mistake) haptics('error');
+    else haptics('light');
+  }, [feedback, haptics]);
 
   // Desktop keyboard support.
   useEffect(() => {

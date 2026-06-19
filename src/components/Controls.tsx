@@ -136,10 +136,7 @@ export const Controls = (): JSX.Element => {
       <ControlButton
         label="Hint"
         disabled={blocked}
-        onClick={() => {
-          hint();
-          haptics('success');
-        }}
+        onClick={() => hint()}
       >
         {icon('M9 18h6 M10 22h4 M12 2a7 7 0 00-4 12c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a7 7 0 00-4-12z')}
       </ControlButton>

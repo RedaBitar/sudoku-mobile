@@ -14,6 +14,10 @@ export interface CellViewProps {
   /** Digit to emphasize among candidate marks (0 = none). */
   emphasizeCandidate: number;
   reducedMotion: boolean;
+  /** Flash this cell because its row/column/box was just completed. */
+  celebrate: boolean;
+  celebrateDelay: number;
+  celebrateKey: number;
   onSelect: (index: number) => void;
 }
 
@@ -95,11 +99,26 @@ const CellComponent = (p: CellViewProps): JSX.Element => {
       aria-label={ariaLabel(p)}
       aria-pressed={p.selected}
     >
+      {p.celebrate && (
+        <span
+          key={`flash-${p.celebrateKey}`}
+          aria-hidden="true"
+          className="animate-cellclear pointer-events-none absolute inset-0"
+          style={{
+            background: 'var(--accent)',
+            borderRadius: 'inherit',
+            animationDelay: `${p.celebrateDelay}ms`,
+            zIndex: 0,
+          }}
+        />
+      )}
       {p.value !== 0 ? (
         <span
           key={popKey}
           className={popKey ? 'animate-pop' : undefined}
           style={{
+            position: 'relative',
+            zIndex: 1,
             fontSize: '6.4cqw',
             lineHeight: 1,
             fontWeight: p.sameValue ? 700 : p.given ? 600 : 500,
@@ -111,7 +130,7 @@ const CellComponent = (p: CellViewProps): JSX.Element => {
         </span>
       ) : p.candidates !== 0 ? (
         <span
-          className="grid h-full w-full"
+          className="relative z-[1] grid h-full w-full"
           style={{
             gridTemplateColumns: 'repeat(3, 1fr)',
             gridTemplateRows: 'repeat(3, 1fr)',

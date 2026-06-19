@@ -7,7 +7,15 @@ import {
   removeC,
   bit,
 } from '../engine/bitmask';
-import { boxOf, colOf, peersOf, rowOf } from '../engine/peers';
+import {
+  boxCells,
+  boxOf,
+  colCells,
+  colOf,
+  peersOf,
+  rowCells,
+  rowOf,
+} from '../engine/peers';
 import { countSolutions, solve } from '../engine/solver';
 import { gradeDifficulty } from '../engine/grader';
 import { parseGrid } from '../engine/grid';
@@ -99,6 +107,37 @@ export const isBoardComplete = (board: Cell[], solution: string): boolean => {
   return true;
 };
 
+/** True if every cell of a unit is filled and correct. */
+const unitComplete = (
+  board: Cell[],
+  solution: string,
+  cells: number[],
+): boolean =>
+  cells.every(
+    (c) => board[c].value !== 0 && board[c].value === solution.charCodeAt(c) - 48,
+  );
+
+/**
+ * After placing at `idx`, return the cell indices of any row/column/box that
+ * just became fully and correctly filled (for the "unit cleared" celebration).
+ */
+const newlyClearedCells = (
+  board: Cell[],
+  solution: string,
+  idx: number,
+): number[] => {
+  const set = new Set<number>();
+  const units = [
+    rowCells(rowOf(idx)),
+    colCells(colOf(idx)),
+    boxCells(boxOf(idx)),
+  ];
+  for (const u of units) {
+    if (unitComplete(board, solution, u)) u.forEach((c) => set.add(c));
+  }
+  return [...set];
+};
+
 /** Legal digits at an empty cell given current values (for auto-notes). */
 const legalMask = (board: Cell[], i: number): number => {
   let used = 0;
@@ -111,10 +150,20 @@ const legalMask = (board: Cell[], i: number): number => {
 
 // --- Store shape ---
 
+/** Transient signal consumed by the UI for haptics + animations. Not
+ * persisted; `id` changes on every input so effects re-fire. */
+export interface Feedback {
+  id: number;
+  mistake: boolean;
+  clearedCells: number[]; // cells of any row/col/box just completed
+  solved: boolean;
+}
+
 interface GameStore extends GameState {
   generating: boolean;
   pendingRequestId: string | null;
   hydrated: boolean;
+  feedback: Feedback | null;
 
   newGame: (difficulty: Difficulty) => void;
   applyGenerated: (msg: WorkerResponse) => void;
@@ -179,6 +228,12 @@ const commitMove = (
   };
 };
 
+/** Build the next feedback signal (monotonic id so the UI re-reacts). */
+const bumpFeedback = (
+  state: GameStore,
+  partial: Omit<Feedback, 'id'>,
+): Feedback => ({ id: (state.feedback?.id ?? 0) + 1, ...partial });
+
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
@@ -186,6 +241,7 @@ export const useGameStore = create<GameStore>()(
       generating: false,
       pendingRequestId: null,
       hydrated: false,
+      feedback: null,
 
       newGame: (difficulty) => {
         const requestId = makeRequestId();
@@ -296,7 +352,14 @@ export const useGameStore = create<GameStore>()(
               },
             ],
           };
-          set(commitMove(state, board, diff));
+          set({
+            ...commitMove(state, board, diff),
+            feedback: bumpFeedback(state, {
+              mistake: false,
+              clearedCells: [],
+              solved: false,
+            }),
+          });
           return;
         }
 
@@ -313,7 +376,14 @@ export const useGameStore = create<GameStore>()(
           });
           board[idx] = { ...cell, value: 0 };
           const diff: MoveDiff = { selectedIndex: idx, changes };
-          set(commitMove(state, board, diff));
+          set({
+            ...commitMove(state, board, diff),
+            feedback: bumpFeedback(state, {
+              mistake: false,
+              clearedCells: [],
+              solved: false,
+            }),
+          });
           return;
         }
 
@@ -349,7 +419,19 @@ export const useGameStore = create<GameStore>()(
 
         const diff: MoveDiff = { selectedIndex: idx, changes };
         const committed = commitMove(state, board, diff);
-        set({ ...committed, mistakes });
+        const solved = committed.completed === true;
+        const clearedCells = isWrong
+          ? []
+          : newlyClearedCells(board, state.solution, idx);
+        set({
+          ...committed,
+          mistakes,
+          feedback: bumpFeedback(state, {
+            mistake: isWrong,
+            clearedCells,
+            solved,
+          }),
+        });
 
         // Optional 3-strike mode: end the game on the third mistake.
         if (settings.strikeMode && mistakes >= 3 && !committed.completed) {
@@ -467,7 +549,16 @@ export const useGameStore = create<GameStore>()(
 
         const diff: MoveDiff = { selectedIndex: idx, changes };
         const committed = commitMove(state, board, diff);
-        set({ ...committed, selectedIndex: idx, hintsUsed: state.hintsUsed + 1 });
+        set({
+          ...committed,
+          selectedIndex: idx,
+          hintsUsed: state.hintsUsed + 1,
+          feedback: bumpFeedback(state, {
+            mistake: false,
+            clearedCells: newlyClearedCells(board, state.solution, idx),
+            solved: committed.completed === true,
+          }),
+        });
       },
 
       autoFillNotes: () => {

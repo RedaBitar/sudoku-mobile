@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { computeRemaining, useGameStore } from '../store/gameStore';
 import { useSettingsStore } from '../store/settingsStore';
-import { useHaptics } from '../hooks/useHaptics';
 
 export const NumberPad = (): JSX.Element => {
   const board = useGameStore((s) => s.board);
@@ -11,7 +10,6 @@ export const NumberPad = (): JSX.Element => {
   const paused = useGameStore((s) => s.paused);
 
   const greyCompleted = useSettingsStore((s) => s.settings.greyCompletedDigits);
-  const haptics = useHaptics();
 
   const remaining = useMemo(() => computeRemaining(board), [board]);
 
@@ -29,10 +27,7 @@ export const NumberPad = (): JSX.Element => {
         key={d}
         type="button"
         disabled={disabled}
-        onClick={() => {
-          inputDigit(d);
-          haptics('light');
-        }}
+        onClick={() => inputDigit(d)}
         className="no-touch-callout relative flex flex-col items-center justify-center rounded-2xl transition active:scale-95 disabled:active:scale-100"
         style={{
           flex: '1 1 0',
