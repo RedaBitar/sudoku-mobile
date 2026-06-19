@@ -114,14 +114,14 @@ export const SettingsSheet = (): JSX.Element => {
     <Sheet open={open} onClose={close} title="Settings">
       <Section title="Assistance">
         <ToggleRow
-          label="Mistake detection"
-          hint="Flag duplicates in a row, column, or box."
+          label="Highlight conflicts"
+          hint="Flag duplicates in a row, column, or box (the current board)."
           checked={settings.mistakeDetection}
           onChange={bind('mistakeDetection')}
         />
         <ToggleRow
-          label="Highlight wrong entries"
-          hint="Compare entries against the solution."
+          label="Highlight incorrect entries"
+          hint="Compare against the solution — flags a wrong digit even when it doesn't conflict yet."
           checked={settings.compareToSolution}
           onChange={bind('compareToSolution')}
         />

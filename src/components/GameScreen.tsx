@@ -76,7 +76,11 @@ export const GameScreen = (): JSX.Element => {
     <div className="flex min-h-0 flex-1 flex-col">
       <TopBar />
 
-      <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3 py-2">
+      <main className="flex min-h-0 flex-1 flex-col items-center px-3">
+        {/* Spacers keep the board in its upper-middle spot while the controls
+            sit just beneath it and the extra room collects at the bottom. */}
+        <div style={{ flexGrow: 1 }} aria-hidden="true" />
+
         <div className="relative w-full max-w-[min(92vw,560px)]">
           <Board />
           {generating && (
@@ -99,12 +103,15 @@ export const GameScreen = (): JSX.Element => {
             </div>
           )}
         </div>
-      </main>
 
-      <div className="flex flex-col gap-3 px-3 pb-6 pt-1 sm:pb-8">
-        <Controls />
-        <NumberPad />
-      </div>
+        <div className="mt-4 flex w-full max-w-[min(92vw,560px)] flex-col gap-3 px-1">
+          <Controls />
+          <NumberPad />
+        </div>
+
+        {/* Larger bottom spacer so the controls clear the screen edge. */}
+        <div style={{ flexGrow: 1.4 }} aria-hidden="true" />
+      </main>
     </div>
   );
 };

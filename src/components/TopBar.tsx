@@ -14,35 +14,79 @@ export const TopBar = (): JSX.Element => {
   const completed = useGameStore((s) => s.completed);
   const pause = useGameStore((s) => s.pause);
   const resume = useGameStore((s) => s.resume);
+  const newGame = useGameStore((s) => s.newGame);
+  const hasUnfinished = useGameStore(
+    (s) => s.given.length === 81 && !s.completed,
+  );
 
   const showTimer = useSettingsStore((s) => s.settings.showTimer);
   const openSettings = useUIStore((s) => s.openSettings);
   const openDifficulty = useUIStore((s) => s.openDifficulty);
+  const requestConfirm = useUIStore((s) => s.requestConfirm);
+
+  // Start a fresh puzzle at the current difficulty, confirming first if the
+  // current game is still in progress.
+  const startNewGame = (): void => {
+    const begin = (): void => newGame(difficulty);
+    if (hasUnfinished) {
+      requestConfirm({
+        title: 'Start a new game?',
+        message:
+          'Your current game is unfinished. Starting a new puzzle will discard it.',
+        confirmLabel: 'New game',
+        onConfirm: begin,
+      });
+    } else {
+      begin();
+    }
+  };
 
   return (
     <header
       className="flex items-center justify-between px-3 py-3"
       style={{ color: 'var(--text-given)' }}
     >
-      <button
-        type="button"
-        onClick={openDifficulty}
-        className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition active:scale-95"
-        style={{ background: 'var(--surface)', boxShadow: 'var(--shadow)' }}
-        aria-label={`Difficulty: ${DIFFICULTIES[difficulty].label}. Change difficulty.`}
-      >
-        <span>{DIFFICULTIES[difficulty].label}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M6 9l6 6 6-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={openDifficulty}
+          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition active:scale-95"
+          style={{ background: 'var(--surface)', boxShadow: 'var(--shadow)' }}
+          aria-label={`Difficulty: ${DIFFICULTIES[difficulty].label}. Change difficulty.`}
+        >
+          <span>{DIFFICULTIES[difficulty].label}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 9l6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          onClick={startNewGame}
+          className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium transition active:scale-95"
+          style={{ background: 'var(--accent)', color: '#fff', boxShadow: 'var(--shadow)' }}
+          aria-label="Start a new game at the current difficulty"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M20 11a8 8 0 10-2.3 5.7M20 5v4h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span>New</span>
+        </button>
+      </div>
 
       <div className="flex items-center gap-1">
         {showTimer && (

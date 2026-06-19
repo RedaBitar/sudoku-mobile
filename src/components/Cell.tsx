@@ -66,6 +66,15 @@ const CellComponent = (p: CellViewProps): JSX.Element => {
     transition: 'background-color 140ms ease',
   };
 
+  // Round the four board-corner cells to match the grid's rounded corners,
+  // so corner highlights and the selection ring curve with the board edge
+  // instead of being clipped square. (16px board radius minus 2px border.)
+  const corner = 'calc(var(--radius) - 2px)';
+  if (p.index === 0) style.borderTopLeftRadius = corner;
+  if (p.index === 8) style.borderTopRightRadius = corner;
+  if (p.index === 72) style.borderBottomLeftRadius = corner;
+  if (p.index === 80) style.borderBottomRightRadius = corner;
+
   // Gentle pop when a fresh value lands in this cell.
   const prev = useRef(p.value);
   const [popKey, setPopKey] = useState(0);
@@ -79,6 +88,7 @@ const CellComponent = (p: CellViewProps): JSX.Element => {
   return (
     <button
       type="button"
+      data-cell={p.index}
       onClick={() => p.onSelect(p.index)}
       className="no-touch-callout relative flex items-center justify-center"
       style={style}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef, type PointerEvent } from 'react';
 import {
   computeConflicts,
   computeWrong,
@@ -7,6 +7,15 @@ import {
 import { peersOf } from '../engine/peers';
 import { useSettingsStore } from '../store/settingsStore';
 import { Cell } from './Cell';
+
+/** Resolve the cell index under a pointer position, or null. */
+const cellIndexAt = (x: number, y: number): number | null => {
+  const el = document.elementFromPoint(x, y);
+  const host = el?.closest('[data-cell]');
+  if (!host) return null;
+  const raw = host.getAttribute('data-cell');
+  return raw === null ? null : Number(raw);
+};
 
 const usePrefersReducedMotion = (): boolean =>
   typeof window !== 'undefined' &&
@@ -48,6 +57,47 @@ export const Board = (): JSX.Element => {
   const emphasizeCandidate =
     settings.sameValueHighlight && selectedValue !== 0 ? selectedValue : 0;
 
+  // Drag across the board to sweep the selection from cell to cell, like
+  // hovering a mouse. Works for touch and mouse via pointer capture +
+  // elementFromPoint, so it never gets "stuck" on the starting cell.
+  const dragging = useRef(false);
+  const lastIndex = useRef<number | null>(null);
+
+  const selectAtPoint = useCallback(
+    (x: number, y: number) => {
+      const i = cellIndexAt(x, y);
+      if (i !== null && i !== lastIndex.current) {
+        lastIndex.current = i;
+        selectCell(i);
+      }
+    },
+    [selectCell],
+  );
+
+  const onPointerDown = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (paused) return;
+      dragging.current = true;
+      lastIndex.current = null;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      selectAtPoint(e.clientX, e.clientY);
+    },
+    [paused, selectAtPoint],
+  );
+
+  const onPointerMove = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (!dragging.current) return;
+      selectAtPoint(e.clientX, e.clientY);
+    },
+    [selectAtPoint],
+  );
+
+  const endDrag = useCallback(() => {
+    dragging.current = false;
+    lastIndex.current = null;
+  }, []);
+
   return (
     <div
       className="relative aspect-square w-full select-none overflow-hidden rounded-2xl"
@@ -65,7 +115,12 @@ export const Board = (): JSX.Element => {
           gridTemplateRows: 'repeat(9, 1fr)',
           filter: paused ? 'blur(10px)' : undefined,
           pointerEvents: paused ? 'none' : undefined,
+          touchAction: 'none', // let a drag sweep selection without scrolling
         }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
         {board.map((cell, i) => {
           const selected = selectedIndex === i;
