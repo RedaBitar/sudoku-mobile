@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useRef, type PointerEvent } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent,
+} from 'react';
 import {
   computeConflicts,
   computeWrong,
@@ -62,11 +68,16 @@ export const Board = (): JSX.Element => {
   // elementFromPoint, so it never gets "stuck" on the starting cell.
   const dragging = useRef(false);
   const lastIndex = useRef<number | null>(null);
+  // True once a drag has moved to a different cell. Used to swallow the
+  // trailing click — which the browser dispatches on the cell where the
+  // gesture STARTED — so the selection doesn't snap back to it on release.
+  const didDrag = useRef(false);
 
   const selectAtPoint = useCallback(
-    (x: number, y: number) => {
+    (x: number, y: number): void => {
       const i = cellIndexAt(x, y);
       if (i !== null && i !== lastIndex.current) {
+        if (lastIndex.current !== null) didDrag.current = true;
         lastIndex.current = i;
         selectCell(i);
       }
@@ -78,6 +89,7 @@ export const Board = (): JSX.Element => {
     (e: PointerEvent<HTMLDivElement>) => {
       if (paused) return;
       dragging.current = true;
+      didDrag.current = false;
       lastIndex.current = null;
       e.currentTarget.setPointerCapture(e.pointerId);
       selectAtPoint(e.clientX, e.clientY);
@@ -98,6 +110,15 @@ export const Board = (): JSX.Element => {
     lastIndex.current = null;
   }, []);
 
+  // Cancel the post-drag click (capture phase, before the cell's onClick).
+  const onClickCapture = useCallback((e: ReactMouseEvent) => {
+    if (didDrag.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      didDrag.current = false;
+    }
+  }, []);
+
   return (
     <div
       className="relative aspect-square w-full select-none overflow-hidden rounded-2xl"
@@ -109,7 +130,7 @@ export const Board = (): JSX.Element => {
       }}
     >
       <div
-        className="grid h-full w-full"
+        className="absolute inset-0 grid"
         style={{
           gridTemplateColumns: 'repeat(9, 1fr)',
           gridTemplateRows: 'repeat(9, 1fr)',
@@ -121,6 +142,7 @@ export const Board = (): JSX.Element => {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
       >
         {board.map((cell, i) => {
           const selected = selectedIndex === i;

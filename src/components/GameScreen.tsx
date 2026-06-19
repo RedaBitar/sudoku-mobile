@@ -109,8 +109,9 @@ export const GameScreen = (): JSX.Element => {
           <NumberPad />
         </div>
 
-        {/* Larger bottom spacer so the controls clear the screen edge. */}
-        <div style={{ flexGrow: 1.4 }} aria-hidden="true" />
+        {/* Bottom spacer < top spacer, so the controls sit lower (closer to
+            the old position) while still clearing the screen edge. */}
+        <div style={{ flexGrow: 0.55 }} aria-hidden="true" />
       </main>
     </div>
   );

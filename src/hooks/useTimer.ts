@@ -8,6 +8,7 @@ import { useGameStore } from '../store/gameStore';
  */
 export const useTimer = (): void => {
   const tick = useGameStore((s) => s.tick);
+  const pause = useGameStore((s) => s.pause);
 
   useEffect(() => {
     let last = Date.now();
@@ -17,17 +18,21 @@ export const useTimer = (): void => {
       last = now;
     }, 1000);
 
-    // Don't accrue time while the tab is hidden.
+    // Leaving the app (switching tabs/apps, locking the screen) pauses the
+    // game, so the timer stops and the board blurs until you tap to resume.
     const onVisibility = (): void => {
-      last = Date.now();
+      if (document.hidden) pause();
+      else last = Date.now();
     };
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', pause);
 
     return () => {
       window.clearInterval(id);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', pause);
     };
-  }, [tick]);
+  }, [tick, pause]);
 };
 
 export const formatTime = (ms: number): string => {
