@@ -14,14 +14,16 @@ export const Confetti = (): JSX.Element | null => {
 
   const pieces = useMemo(
     () =>
-      Array.from({ length: 90 }, (_unused, i) => ({
+      Array.from({ length: 140 }, (_unused, i) => ({
         left: Math.random() * 100,
-        delay: Math.random() * 0.4,
-        duration: 1.9 + Math.random() * 1.5,
+        // Stagger the launch over ~1s so the confetti rains for a few
+        // seconds rather than flashing by in one frame.
+        delay: Math.random() * 1,
+        duration: 2.6 + Math.random() * 1.8,
         color: COLORS[i % COLORS.length],
-        width: 6 + Math.random() * 6,
-        height: 8 + Math.random() * 8,
-        drift: (Math.random() * 2 - 1) * 60,
+        width: 7 + Math.random() * 6,
+        height: 9 + Math.random() * 9,
+        drift: (Math.random() * 2 - 1) * 70,
         round: Math.random() > 0.5,
       })),
     [],

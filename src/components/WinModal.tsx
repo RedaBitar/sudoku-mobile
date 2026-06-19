@@ -38,23 +38,6 @@ export const WinModal = (): JSX.Element | null => {
 
       {isWin && <Confetti />}
 
-      {/* Tasteful completion sweep */}
-      {isWin && (
-        <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          aria-hidden="true"
-        >
-          <div
-            className="absolute inset-y-0 w-1/3"
-            style={{
-              background:
-                'linear-gradient(90deg, transparent, var(--accent), transparent)',
-              animation: 'sweep 900ms ease-out',
-            }}
-          />
-        </div>
-      )}
-
       <div
         className="animate-sheet-up relative w-full max-w-sm rounded-3xl p-6 text-center"
         style={{

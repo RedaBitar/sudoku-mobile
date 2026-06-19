@@ -89,19 +89,6 @@ button {
   animation: pop 140ms ease-out;
 }
 
-@keyframes sweep {
-  0% {
-    opacity: 0;
-    transform: translateX(-30%);
-  }
-  40% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(130%);
-  }
-}
 
 @keyframes fade-in {
   from {
