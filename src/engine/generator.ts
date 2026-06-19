@@ -9,7 +9,7 @@ import { boxCells } from './peers';
 import { countSolutions, shuffle, solve } from './solver';
 import { gradeDifficulty } from './grader';
 import { gridToString, parseGrid } from './grid';
-import { DIFFICULTIES, type Difficulty } from './types';
+import type { Difficulty } from './types';
 
 /**
  * Produce a random, complete, valid solution grid.
@@ -56,10 +56,16 @@ export interface Puzzle {
  * difficulty call.
  */
 const carvePuzzle = (solution: number[], difficulty: Difficulty): number[] => {
-  const [minClues, maxClues] = DIFFICULTIES[difficulty].clues;
-  // A random stop within the band gives variety and samples a range of
-  // technique grades, so we hit the requested level more often.
-  const target = minClues + Math.floor(Math.random() * (maxClues - minClues + 1));
+  // Carving all the way to the minimum clue count tends to produce puzzles
+  // that need guessing (which the grader rejects) rather than ones that
+  // exercise a specific technique. Instead we stop at a soft, level-biased
+  // clue target with some spread: harder levels keep fewer clues, but never
+  // so few that the puzzle is forced into guess territory.
+  const center = 48 - difficulty * 4; // 44, 40, 36, 32, 28
+  const lo = Math.max(24, center - 4);
+  const hi = Math.min(50, center + 4);
+  const target = lo + Math.floor(Math.random() * (hi - lo + 1));
+
   const puzzle = solution.slice();
   let clues = 81;
   for (const i of shuffle([...Array(81).keys()])) {
