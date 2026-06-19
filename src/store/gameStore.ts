@@ -8,6 +8,9 @@ import {
   bit,
 } from '../engine/bitmask';
 import { boxOf, colOf, peersOf, rowOf } from '../engine/peers';
+import { countSolutions, solve } from '../engine/solver';
+import { gradeDifficulty } from '../engine/grader';
+import { parseGrid } from '../engine/grid';
 import type {
   Cell,
   Difficulty,
@@ -115,6 +118,7 @@ interface GameStore extends GameState {
 
   newGame: (difficulty: Difficulty) => void;
   applyGenerated: (msg: WorkerResponse) => void;
+  loadSharedPuzzle: (given: string) => boolean;
   selectCell: (index: number | null) => void;
   inputDigit: (d: number) => void;
   erase: () => void;
@@ -228,6 +232,38 @@ export const useGameStore = create<GameStore>()(
           generating: false,
           pendingRequestId: null,
         });
+      },
+
+      // Load a puzzle shared via URL/code. Validates uniqueness, derives the
+      // solution and a technique grade, then starts a fresh game from it.
+      loadSharedPuzzle: (given) => {
+        if (!/^[0-9]{81}$/.test(given)) return false;
+        const grid = parseGrid(given);
+        if (countSolutions(grid, 2) !== 1) return false;
+        const solved = solve(grid);
+        if (!solved) return false;
+
+        const difficulty = (gradeDifficulty(given) ?? 3) as Difficulty;
+        useSettingsStore.getState().recordGameStart(difficulty);
+        set({
+          puzzleId: makeRequestId(),
+          difficulty,
+          given,
+          solution: solved.join(''),
+          board: buildBoard(given),
+          selectedIndex: null,
+          notesMode: false,
+          undoStack: [],
+          startedAt: Date.now(),
+          elapsedMs: 0,
+          paused: false,
+          completed: false,
+          hintsUsed: 0,
+          mistakes: 0,
+          generating: false,
+          pendingRequestId: null,
+        });
+        return true;
       },
 
       selectCell: (index) => set({ selectedIndex: index }),

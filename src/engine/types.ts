@@ -6,16 +6,20 @@ export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export interface DifficultyMeta {
   level: Difficulty;
   label: string;
-  /** Inclusive clue band [min, max] used by the carving algorithm. */
+  /** Inclusive clue band [min, max] that biases the carving algorithm. */
   clues: [number, number];
+  /** The hardest solving technique a puzzle at this level requires. */
+  technique: string;
 }
 
+// Levels are graded by the hardest logical technique needed to solve the
+// puzzle (see engine/grader.ts), not merely by clue count.
 export const DIFFICULTIES: Record<Difficulty, DifficultyMeta> = {
-  1: { level: 1, label: 'Gentle', clues: [44, 49] },
-  2: { level: 2, label: 'Casual', clues: [38, 43] },
-  3: { level: 3, label: 'Balanced', clues: [32, 37] },
-  4: { level: 4, label: 'Tough', clues: [28, 31] },
-  5: { level: 5, label: 'Brutal', clues: [24, 27] },
+  1: { level: 1, label: 'Gentle', clues: [44, 49], technique: 'Singles only' },
+  2: { level: 2, label: 'Casual', clues: [38, 43], technique: 'Locked candidates' },
+  3: { level: 3, label: 'Balanced', clues: [32, 37], technique: 'Naked & hidden pairs' },
+  4: { level: 4, label: 'Tough', clues: [28, 31], technique: 'Triples & subsets' },
+  5: { level: 5, label: 'Brutal', clues: [24, 27], technique: 'X-Wing & beyond' },
 };
 
 /** A single cell on the board. */

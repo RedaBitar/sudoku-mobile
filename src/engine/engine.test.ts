@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { countC, digitsC, hasC, removeC } from './bitmask';
 import { peersOf } from './peers';
 import { countSolutions, solve } from './solver';
-import { clueCount, generatePuzzle, parseGrid } from './generator';
+import { generatePuzzle } from './generator';
+import { parseGrid } from './grid';
+import { gradeDifficulty } from './grader';
+import { decodePuzzle } from './share';
 import { DIFFICULTIES, type Difficulty } from './types';
 
 // A known puzzle with a single solution (from a standard test set).
@@ -31,7 +34,7 @@ describe('peers', () => {
       const peers = peersOf(i);
       expect(peers).toHaveLength(20);
       expect(peers).not.toContain(i);
-      expect(new Set(peers).size).toBe(20); // all unique
+      expect(new Set(peers).size).toBe(20);
     }
   });
 });
@@ -48,9 +51,20 @@ describe('solver', () => {
   });
 
   it('countSolutions returns >1 for an under-constrained grid', () => {
-    // The empty grid has astronomically many solutions; the early stop
-    // means we just confirm it found at least the requested limit.
     expect(countSolutions(new Array<number>(81).fill(0), 2)).toBeGreaterThan(1);
+  });
+});
+
+describe('grader', () => {
+  it('logically solves a known puzzle and returns a valid grade', () => {
+    const grade = gradeDifficulty(KNOWN_PUZZLE);
+    expect(grade).not.toBeNull();
+    expect(grade).toBeGreaterThanOrEqual(1);
+    expect(grade).toBeLessThanOrEqual(5);
+  });
+
+  it('rates the empty grid as unsolvable by logic (null)', () => {
+    expect(gradeDifficulty('0'.repeat(81))).toBeNull();
   });
 });
 
@@ -58,23 +72,37 @@ describe('generator', () => {
   const levels: Difficulty[] = [1, 2, 3, 4, 5];
 
   for (const level of levels) {
-    it(`generatePuzzle(${level}) is unique and near the ${DIFFICULTIES[level].label} clue band`, () => {
-      const { given, solution } = generatePuzzle(level);
-      expect(given).toHaveLength(81);
-      expect(solution).toHaveLength(81);
+    it(
+      `generatePuzzle(${level}) is unique and grades near ${DIFFICULTIES[level].label}`,
+      () => {
+        const { given, solution } = generatePuzzle(level);
+        expect(given).toHaveLength(81);
+        expect(solution).toHaveLength(81);
 
-      // Unique solution.
-      expect(countSolutions(parseGrid(given), 2)).toBe(1);
+        // Unique solution.
+        expect(countSolutions(parseGrid(given), 2)).toBe(1);
 
-      // The given is consistent with the solution.
-      for (let i = 0; i < 81; i++) {
-        if (given[i] !== '0') expect(given[i]).toBe(solution[i]);
-      }
+        // The given is consistent with the solution.
+        for (let i = 0; i < 81; i++) {
+          if (given[i] !== '0') expect(given[i]).toBe(solution[i]);
+        }
 
-      // Clue count lands at or below the band's upper bound (carving may
-      // overshoot below the minimum for hard levels, which is acceptable).
-      const [, maxClues] = DIFFICULTIES[level].clues;
-      expect(clueCount(given)).toBeLessThanOrEqual(maxClues);
-    });
+        // Technique grade lands at (or very near) the requested level.
+        const grade = gradeDifficulty(given);
+        expect(grade).not.toBeNull();
+        expect(Math.abs((grade as number) - level)).toBeLessThanOrEqual(1);
+      },
+      20000,
+    );
   }
+});
+
+describe('share', () => {
+  it('round-trips a valid puzzle code and rejects malformed ones', () => {
+    const { given } = generatePuzzle(1);
+    expect(decodePuzzle(given)).toBe(given);
+    expect(decodePuzzle('not-a-puzzle')).toBeNull();
+    expect(decodePuzzle('123')).toBeNull();
+    expect(decodePuzzle(null)).toBeNull();
+  });
 });

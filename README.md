@@ -111,21 +111,26 @@ default Tailwind template and theme switching is a single class toggle.
 
 ## Difficulty model
 
-Difficulty is graded by **clue count** (number of givens). Generation carves a
-unique-solution puzzle down into the band for the chosen level:
+Difficulty is **technique-aware** (`src/engine/grader.ts`): a puzzle is solved
+the way a person would — applying logical techniques from easiest to hardest —
+and rated by the **hardest technique required**. Generation carves a
+unique-solution puzzle (clue count biases how aggressively) and only accepts it
+when its grade matches the chosen level, with a closest-match fallback under a
+time budget.
 
-| Level | Label    | Target clues |
-| ----- | -------- | ------------ |
-| 1     | Gentle   | 44–49        |
-| 2     | Casual   | 38–43        |
-| 3     | Balanced | 32–37        |
-| 4     | Tough    | 28–31        |
-| 5     | Brutal   | 24–27        |
+| Level | Label    | Hardest technique needed | Clue bias |
+| ----- | -------- | ------------------------ | --------- |
+| 1     | Gentle   | Singles only             | 44–49     |
+| 2     | Casual   | Locked candidates        | 38–43     |
+| 3     | Balanced | Naked & hidden pairs     | 32–37     |
+| 4     | Tough    | Triples & subsets        | 28–31     |
+| 5     | Brutal   | X-Wing & beyond          | 24–27     |
 
-Carving may overshoot slightly below a band's minimum for the hardest levels
-(still a valid, unique puzzle); the tests assert the clue count never exceeds
-the band's upper bound. Technique-aware grading is a future enhancement, out of
-scope here.
+Implemented techniques: naked/hidden singles, locked candidates
+(pointing/claiming), naked & hidden subsets (pairs, triples), and X-Wing. If a
+carved puzzle can't be cracked by these (i.e. it would need guessing), the
+generator discards it. Pure X-Wing puzzles are scarce, so the top tier accepts
+any puzzle needing subsets-or-harder.
 
 ---
 
@@ -166,12 +171,17 @@ Optional extras built:
 - **Desktop keyboard support** — arrows move selection, `1–9` input,
   `Backspace`/`Delete` erase, `N` toggles notes, `Ctrl/Cmd+Z` undo.
 - **Haptics** on supported devices (gated by a setting).
+- **Technique-aware difficulty grading** — levels reflect the hardest solving
+  technique a puzzle requires, not just clue count (see above).
+- **Shareable puzzles** — Settings → *Copy puzzle link* shares the current
+  board as a `?p=<given>` URL (uses the native share sheet when available).
+  Opening such a link loads that exact puzzle, deriving its solution and
+  difficulty grade automatically.
 
 ### Skipped / future
 
-- Technique-aware difficulty grading.
-- Seeded / shareable puzzle URLs (the `given` string makes this straightforward
-  to add later).
+- Even harder solving techniques (Swordfish, XY-Wing, colouring) for a sixth
+  tier — the grader is structured so new techniques slot in directly.
 
 ---
 

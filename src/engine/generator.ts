@@ -1,9 +1,14 @@
-// Puzzle generation: a random complete grid, then symmetric-free carving
-// down to a target clue band with a guaranteed-unique solution.
+// Puzzle generation: a random complete grid, carved down to a target
+// difficulty. Difficulty is now technique-aware — we carve a unique puzzle
+// and grade it by the hardest logical technique required, accepting it only
+// when the grade matches the requested level (with a closest-match fallback
+// under a wall-clock budget).
 
 import { bit } from './bitmask';
 import { boxCells } from './peers';
 import { countSolutions, shuffle, solve } from './solver';
+import { gradeDifficulty } from './grader';
+import { gridToString, parseGrid } from './grid';
 import { DIFFICULTIES, type Difficulty } from './types';
 
 /**
@@ -24,7 +29,6 @@ export const generateFullGrid = (): number[] => {
   }
 
   const solved = solve(grid, true);
-  // The diagonal seed is always completable, but fall back defensively.
   return solved ?? buildFallbackGrid();
 };
 
@@ -39,88 +43,88 @@ const buildFallbackGrid = (): number[] => {
   return grid;
 };
 
-const gridToString = (grid: number[]): string => grid.join('');
-
 export interface Puzzle {
   given: string;
   solution: string;
 }
 
 /**
- * Generate a puzzle for the given difficulty.
- *
- * Carving: copy the solution, then visit cells in random order and try to
- * clear each one. A clear is only kept if the puzzle still has exactly one
- * solution. We stop once the clue count reaches the difficulty's target
- * band, or once we run out of removable cells.
- *
- * A wall-clock guard prevents pathological looping: if carving stalls we
- * accept the best (lowest-clue) unique puzzle reached so far.
+ * Carve a unique-solution puzzle from a solved grid, removing clues in
+ * random order down toward the difficulty's clue band. Uniqueness is
+ * preserved at every step. The clue band biases how aggressively we carve
+ * (harder levels tend to need fewer clues), while the grader makes the final
+ * difficulty call.
+ */
+const carvePuzzle = (solution: number[], difficulty: Difficulty): number[] => {
+  const [minClues, maxClues] = DIFFICULTIES[difficulty].clues;
+  // A random stop within the band gives variety and samples a range of
+  // technique grades, so we hit the requested level more often.
+  const target = minClues + Math.floor(Math.random() * (maxClues - minClues + 1));
+  const puzzle = solution.slice();
+  let clues = 81;
+  for (const i of shuffle([...Array(81).keys()])) {
+    if (clues <= target) break;
+    const saved = puzzle[i];
+    if (saved === 0) continue;
+    puzzle[i] = 0;
+    if (countSolutions(puzzle, 2) === 1) clues--;
+    else puzzle[i] = saved; // removal broke uniqueness; restore
+  }
+  return puzzle;
+};
+
+/**
+ * Generate a puzzle whose technique grade matches the requested difficulty.
+ * Tries fresh grids/carvings until the grade matches or the time budget runs
+ * out, keeping the closest grade seen as a fallback so we always return a
+ * valid, unique puzzle.
  */
 export const generatePuzzle = (difficulty: Difficulty): Puzzle => {
-  const meta = DIFFICULTIES[difficulty];
-  const [minClues, maxClues] = meta.clues;
+  const start = Date.now();
+  const hardDeadline = start + 4500;
+  const softDeadline = start + 1500; // good enough once we have a near match
+  let best: { given: string; solution: string; grade: number } | null = null;
+
+  while (Date.now() < hardDeadline) {
+    const solution = generateFullGrid();
+    const given = gridToString(carvePuzzle(solution, difficulty));
+    const grade = gradeDifficulty(given);
+    if (grade === null) continue; // needs guessing — discard
+
+    // Pure X-Wing puzzles are scarce, so the top tier accepts any puzzle
+    // needing subsets-or-harder; every other level wants an exact match.
+    const matches = difficulty === 5 ? grade >= 4 : grade === difficulty;
+    if (matches) {
+      return { given, solution: gridToString(solution) };
+    }
+    if (
+      best === null ||
+      Math.abs(grade - difficulty) < Math.abs(best.grade - difficulty)
+    ) {
+      best = { given, solution: gridToString(solution), grade };
+    }
+    // Stop hunting for an exact match once we have a within-one candidate and
+    // the soft budget has elapsed, so generation stays snappy.
+    if (
+      best &&
+      Math.abs(best.grade - difficulty) <= 1 &&
+      Date.now() > softDeadline
+    ) {
+      return { given: best.given, solution: best.solution };
+    }
+  }
+
+  if (best) return { given: best.given, solution: best.solution };
+
+  // Ultimate fallback (budget exhausted before any gradable puzzle): a plain
+  // unique carve, ungraded.
   const solution = generateFullGrid();
-
-  const deadline = Date.now() + 4000; // generous per-puzzle budget
-
-  let best: number[] | null = null;
-  let bestClues = 82;
-
-  // A few independent carving attempts; keep the one closest to the band.
-  for (let attempt = 0; attempt < 12 && Date.now() < deadline; attempt++) {
-    const puzzle = solution.slice();
-    let clues = 81;
-    const order = shuffle([...Array(81).keys()]);
-
-    for (const i of order) {
-      if (clues <= maxClues) break; // reached the band's upper edge
-      if (Date.now() > deadline) break;
-      const saved = puzzle[i];
-      if (saved === 0) continue;
-      puzzle[i] = 0;
-      if (countSolutions(puzzle, 2) === 1) {
-        clues--;
-      } else {
-        puzzle[i] = saved; // removal broke uniqueness; restore
-      }
-    }
-
-    if (clues < bestClues) {
-      bestClues = clues;
-      best = puzzle.slice();
-    }
-
-    // Good enough: inside (or below) the target band.
-    if (clues >= minClues && clues <= maxClues) {
-      return { given: gridToString(puzzle), solution: gridToString(solution) };
-    }
-    if (clues < minClues) {
-      // Below the band can still happen for hard levels; accept it.
-      return { given: gridToString(puzzle), solution: gridToString(solution) };
-    }
-  }
-
-  // Stalled: return the most-carved unique puzzle we found.
-  const fallback = best ?? solution.slice();
-  return { given: gridToString(fallback), solution: gridToString(solution) };
+  return {
+    given: gridToString(carvePuzzle(solution, difficulty)),
+    solution: gridToString(solution),
+  };
 };
 
-/** Parse an 81-char grid string into a number[81]. */
-export const parseGrid = (s: string): number[] => {
-  const grid = new Array<number>(81);
-  for (let i = 0; i < 81; i++) grid[i] = s.charCodeAt(i) - 48;
-  return grid;
-};
-
-/** Count non-blank clues in a given string. */
-export const clueCount = (given: string): number => {
-  let n = 0;
-  for (let i = 0; i < given.length; i++) {
-    if (given[i] !== '0') n++;
-  }
-  return n;
-};
-
-// Re-exported so the worker and tests can reach digit bits if needed.
-export { bit };
+// Re-exported for the store and tests.
+export { bit, parseGrid };
+export { clueCount } from './grid';

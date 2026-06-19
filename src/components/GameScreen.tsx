@@ -101,7 +101,7 @@ export const GameScreen = (): JSX.Element => {
         </div>
       </main>
 
-      <div className="flex flex-col gap-2 px-3 pb-3">
+      <div className="flex flex-col gap-3 px-3 pb-6 pt-1 sm:pb-8">
         <Controls />
         <NumberPad />
       </div>

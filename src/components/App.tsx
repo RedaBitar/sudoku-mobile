@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
+import { clearPuzzleFromUrl, readPuzzleFromUrl } from '../engine/share';
 import { useTheme } from '../hooks/useTheme';
 import { GameScreen } from './GameScreen';
 import { DifficultyPicker } from './DifficultyPicker';
@@ -14,16 +15,27 @@ export const App = (): JSX.Element => {
 
   const hydrated = useGameStore((s) => s.hydrated);
   const hasGame = useGameStore((s) => s.given.length === 81);
+  const loadSharedPuzzle = useGameStore((s) => s.loadSharedPuzzle);
   const difficultyOpen = useUIStore((s) => s.difficultyOpen);
   const openDifficulty = useUIStore((s) => s.openDifficulty);
   const anyOverlayOpen = useUIStore((s) => s.anyOverlayOpen);
   const closeTopOverlay = useUIStore((s) => s.closeTopOverlay);
 
-  // First launch (or a corrupted save): there is no game to resume, so
-  // surface the difficulty picker. It renders non-dismissible in that case.
+  // A shared puzzle in the URL takes priority over any saved/empty game.
+  const sharedHandled = useRef(false);
   useEffect(() => {
-    if (hydrated && !hasGame) openDifficulty();
-  }, [hydrated, hasGame, openDifficulty]);
+    if (!hydrated || sharedHandled.current) return;
+    sharedHandled.current = true;
+    const shared = readPuzzleFromUrl();
+    if (shared) {
+      const ok = loadSharedPuzzle(shared);
+      clearPuzzleFromUrl();
+      if (ok) return;
+    }
+    // First launch (or a corrupted save): no game to resume, so surface the
+    // difficulty picker. It renders non-dismissible in that case.
+    if (!hasGame) openDifficulty();
+  }, [hydrated, hasGame, loadSharedPuzzle, openDifficulty]);
 
   // Hardware back / Escape pops the top overlay instead of leaving the app.
   useEffect(() => {

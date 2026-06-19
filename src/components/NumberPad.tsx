@@ -15,55 +15,65 @@ export const NumberPad = (): JSX.Element => {
 
   const remaining = useMemo(() => computeRemaining(board), [board]);
 
-  const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  // Two rows for bigger, easier mobile tap targets: 1–5 then 6–9.
+  const rows = [
+    [1, 2, 3, 4, 5],
+    [6, 7, 8, 9],
+  ];
+
+  const renderButton = (d: number): JSX.Element => {
+    const left = remaining[d];
+    const disabled = (greyCompleted && left <= 0) || completed || paused;
+    return (
+      <button
+        key={d}
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          inputDigit(d);
+          haptics('light');
+        }}
+        className="no-touch-callout relative flex flex-col items-center justify-center rounded-2xl transition active:scale-95 disabled:active:scale-100"
+        style={{
+          flex: '1 1 0',
+          maxWidth: '4.75rem',
+          height: '3.5rem',
+          background: disabled ? 'transparent' : 'var(--surface)',
+          boxShadow: disabled ? 'none' : 'var(--shadow)',
+          color: disabled ? 'var(--line-box)' : 'var(--text-user)',
+          opacity: disabled ? 0.45 : 1,
+        }}
+        aria-label={`${notesMode ? 'note' : 'place'} ${d}, ${left} remaining${
+          disabled ? ', disabled' : ''
+        }`}
+      >
+        <span
+          className="tabular font-semibold leading-none"
+          style={{ fontSize: '1.6rem' }}
+        >
+          {d}
+        </span>
+        <span
+          className="tabular leading-none"
+          style={{ fontSize: '0.62rem', marginTop: '0.15rem', color: 'var(--muted-text)' }}
+        >
+          {left}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <div
-      className="grid gap-1.5"
-      style={{ gridTemplateColumns: 'repeat(9, minmax(0, 1fr))' }}
+      className="flex flex-col items-stretch gap-2"
       role="group"
       aria-label="Number pad"
     >
-      {digits.map((d) => {
-        const left = remaining[d];
-        const disabled =
-          (greyCompleted && left <= 0) || completed || paused;
-        return (
-          <button
-            key={d}
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              inputDigit(d);
-              haptics('light');
-            }}
-            className="no-touch-callout relative flex aspect-[3/4] flex-col items-center justify-center rounded-xl transition active:scale-95 disabled:active:scale-100"
-            style={{
-              background: disabled ? 'transparent' : 'var(--surface)',
-              boxShadow: disabled ? 'none' : 'var(--shadow)',
-              color: disabled ? 'var(--line-box)' : 'var(--text-user)',
-              opacity: disabled ? 0.45 : 1,
-              minHeight: 'var(--tap)',
-            }}
-            aria-label={`${notesMode ? 'note' : 'place'} ${d}, ${left} remaining${
-              disabled ? ', disabled' : ''
-            }`}
-          >
-            <span
-              className="tabular font-semibold"
-              style={{ fontSize: 'clamp(1.05rem, 4.4vw, 1.5rem)' }}
-            >
-              {d}
-            </span>
-            <span
-              className="tabular text-[0.62rem] leading-none"
-              style={{ color: 'var(--muted-text)' }}
-            >
-              {left}
-            </span>
-          </button>
-        );
-      })}
+      {rows.map((row, i) => (
+        <div key={i} className="flex justify-center gap-2">
+          {row.map(renderButton)}
+        </div>
+      ))}
     </div>
   );
 };

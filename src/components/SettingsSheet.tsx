@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   useSettingsStore,
   type Settings,
   type ThemeMode,
 } from '../store/settingsStore';
+import { useGameStore } from '../store/gameStore';
 import { useUIStore } from '../store/uiStore';
+import { buildShareUrl } from '../engine/share';
 import { Sheet } from './Sheet';
 
 interface ToggleRowProps {
@@ -77,6 +79,25 @@ export const SettingsSheet = (): JSX.Element => {
   const settings = useSettingsStore((s) => s.settings);
   const setSetting = useSettingsStore((s) => s.setSetting);
   const resetStats = useSettingsStore((s) => s.resetStats);
+
+  const given = useGameStore((s) => s.given);
+  const [shareLabel, setShareLabel] = useState('Copy puzzle link');
+
+  const sharePuzzle = async (): Promise<void> => {
+    if (given.length !== 81) return;
+    const url = buildShareUrl(given);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Sudoku puzzle', url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareLabel('Link copied!');
+      window.setTimeout(() => setShareLabel('Copy puzzle link'), 1800);
+    } catch {
+      // User dismissed the share sheet, or clipboard is unavailable.
+    }
+  };
 
   const bind =
     (key: keyof Settings) =>
@@ -201,6 +222,15 @@ export const SettingsSheet = (): JSX.Element => {
           style={{ background: 'var(--peer-bg)', color: 'var(--text-given)' }}
         >
           Statistics
+        </button>
+        <button
+          type="button"
+          onClick={() => void sharePuzzle()}
+          disabled={given.length !== 81}
+          className="rounded-xl py-3 text-sm font-medium transition active:scale-[0.99] disabled:opacity-40"
+          style={{ background: 'var(--peer-bg)', color: 'var(--text-given)' }}
+        >
+          {shareLabel}
         </button>
         <button
           type="button"

@@ -50,7 +50,8 @@ export const DifficultyPicker = ({
       dismissible={dismissible}
     >
       <p className="mb-4 text-sm" style={{ color: 'var(--muted-text)' }}>
-        Pick a difficulty. Puzzles are generated fresh with a single solution.
+        Pick a difficulty. Each level is graded by the hardest solving
+        technique it requires, and every puzzle has a single solution.
       </p>
       <div className="flex flex-col gap-2 pb-2">
         {levels.map((meta) => {
@@ -71,7 +72,7 @@ export const DifficultyPicker = ({
               <div>
                 <div className="text-base font-semibold">{meta.label}</div>
                 <div className="text-xs" style={{ color: 'var(--muted-text)' }}>
-                  {meta.clues[0]}–{meta.clues[1]} clues
+                  {meta.technique}
                 </div>
               </div>
               <div className="flex gap-1" aria-hidden="true">
