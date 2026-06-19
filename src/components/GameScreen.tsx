@@ -7,6 +7,7 @@ import { TopBar } from './TopBar';
 import { Board } from './Board';
 import { Controls } from './Controls';
 import { NumberPad } from './NumberPad';
+import { StrikeIndicator } from './StrikeIndicator';
 
 export const GameScreen = (): JSX.Element => {
   useTimer();
@@ -99,6 +100,8 @@ export const GameScreen = (): JSX.Element => {
         {/* Spacers keep the board in its upper-middle spot while the controls
             sit just beneath it and the extra room collects at the bottom. */}
         <div style={{ flexGrow: 1 }} aria-hidden="true" />
+
+        <StrikeIndicator />
 
         <div className="relative w-full max-w-[min(92vw,560px)]">
           <Board />
