@@ -5,7 +5,10 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+// Served from a GitHub Pages project subpath in production
+// (https://<user>.github.io/sudoku-mobile/), from root in dev.
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/sudoku-mobile/' : '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -24,7 +27,11 @@ export default defineConfig({
         short_name: 'Sudoku',
         description:
           'A calm, elegant, offline-capable Sudoku you can install and play anywhere.',
-        start_url: '/',
+        // Relative so the app installs correctly whether served from the
+        // domain root or a GitHub Pages project subpath.
+        id: '.',
+        start_url: '.',
+        scope: '.',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#FAFAF9',
@@ -58,4 +65,4 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
   },
-});
+}));
