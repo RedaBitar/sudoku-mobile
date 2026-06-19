@@ -156,6 +156,7 @@ export interface Feedback {
   id: number;
   mistake: boolean;
   clearedCells: number[]; // cells of any row/col/box just completed
+  completedDigit: number | null; // digit whose last copy was just placed
   solved: boolean;
 }
 
@@ -357,6 +358,7 @@ export const useGameStore = create<GameStore>()(
             feedback: bumpFeedback(state, {
               mistake: false,
               clearedCells: [],
+              completedDigit: null,
               solved: false,
             }),
           });
@@ -381,6 +383,7 @@ export const useGameStore = create<GameStore>()(
             feedback: bumpFeedback(state, {
               mistake: false,
               clearedCells: [],
+              completedDigit: null,
               solved: false,
             }),
           });
@@ -423,12 +426,17 @@ export const useGameStore = create<GameStore>()(
         const clearedCells = isWrong
           ? []
           : newlyClearedCells(board, state.solution, idx);
+        // The last copy of this digit just went down (its pad count hits 0).
+        let countD = 0;
+        for (const c of board) if (c.value === d) countD++;
+        const completedDigit = !isWrong && countD === 9 ? d : null;
         set({
           ...committed,
           mistakes,
           feedback: bumpFeedback(state, {
             mistake: isWrong,
             clearedCells,
+            completedDigit,
             solved,
           }),
         });
@@ -549,6 +557,8 @@ export const useGameStore = create<GameStore>()(
 
         const diff: MoveDiff = { selectedIndex: idx, changes };
         const committed = commitMove(state, board, diff);
+        let countCorrect = 0;
+        for (const c of board) if (c.value === correct) countCorrect++;
         set({
           ...committed,
           selectedIndex: idx,
@@ -556,6 +566,7 @@ export const useGameStore = create<GameStore>()(
           feedback: bumpFeedback(state, {
             mistake: false,
             clearedCells: newlyClearedCells(board, state.solution, idx),
+            completedDigit: countCorrect === 9 ? correct : null,
             solved: committed.completed === true,
           }),
         });

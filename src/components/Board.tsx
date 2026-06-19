@@ -46,8 +46,19 @@ export const Board = (): JSX.Element => {
   useEffect(() => {
     if (!feedback || feedback.id === lastClear.current) return;
     lastClear.current = feedback.id;
-    if (!feedback.mistake && feedback.clearedCells.length > 0) {
-      setCleared({ cells: new Set(feedback.clearedCells), key: feedback.id });
+    if (feedback.mistake) return undefined;
+
+    // Flash the cells of any completed row/column/box, plus — when a digit's
+    // final copy is placed — all nine cells holding that digit.
+    const cells = new Set(feedback.clearedCells);
+    if (feedback.completedDigit !== null) {
+      const cur = useGameStore.getState().board;
+      for (let i = 0; i < 81; i++) {
+        if (cur[i].value === feedback.completedDigit) cells.add(i);
+      }
+    }
+    if (cells.size > 0) {
+      setCleared({ cells, key: feedback.id });
       const t = window.setTimeout(
         () => setCleared({ cells: new Set(), key: 0 }),
         750,

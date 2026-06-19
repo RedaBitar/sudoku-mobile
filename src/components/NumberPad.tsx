@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeRemaining, useGameStore } from '../store/gameStore';
 import { useSettingsStore } from '../store/settingsStore';
 
@@ -8,11 +8,23 @@ export const NumberPad = (): JSX.Element => {
   const notesMode = useGameStore((s) => s.notesMode);
   const completed = useGameStore((s) => s.completed);
   const paused = useGameStore((s) => s.paused);
+  const feedback = useGameStore((s) => s.feedback);
 
   const greyCompleted = useSettingsStore((s) => s.settings.greyCompletedDigits);
   const showRemaining = useSettingsStore((s) => s.settings.showRemainingCount);
 
   const remaining = useMemo(() => computeRemaining(board), [board]);
+
+  // Celebrate the button whose digit was just fully placed (count hit 0).
+  const [done, setDone] = useState<{ digit: number; key: number } | null>(null);
+  const lastDone = useRef(0);
+  useEffect(() => {
+    if (!feedback || feedback.id === lastDone.current) return;
+    lastDone.current = feedback.id;
+    if (feedback.completedDigit !== null) {
+      setDone({ digit: feedback.completedDigit, key: feedback.id });
+    }
+  }, [feedback]);
 
   // Two rows for bigger, easier mobile tap targets: 1–5 then 6–9.
   const rows = [
@@ -23,13 +35,14 @@ export const NumberPad = (): JSX.Element => {
   const renderButton = (d: number): JSX.Element => {
     const left = remaining[d];
     const disabled = (greyCompleted && left <= 0) || completed || paused;
+    const celebrate = done?.digit === d;
     return (
       <button
         key={d}
         type="button"
         disabled={disabled}
         onClick={() => inputDigit(d)}
-        className="no-touch-callout relative flex flex-col items-center justify-center rounded-2xl transition active:scale-95 disabled:active:scale-100"
+        className="no-touch-callout relative flex flex-col items-center justify-center overflow-hidden rounded-2xl transition active:scale-95 disabled:active:scale-100"
         style={{
           flex: '1 1 0',
           maxWidth: '4.75rem',
@@ -43,15 +56,23 @@ export const NumberPad = (): JSX.Element => {
           disabled ? ', disabled' : ''
         }`}
       >
+        {celebrate && (
+          <span
+            key={done?.key}
+            aria-hidden="true"
+            className="animate-digitdone pointer-events-none absolute inset-0 rounded-2xl"
+            style={{ background: 'var(--accent)' }}
+          />
+        )}
         <span
-          className="tabular font-semibold leading-none"
+          className="tabular relative z-[1] font-semibold leading-none"
           style={{ fontSize: '1.6rem' }}
         >
           {d}
         </span>
         {showRemaining && (
           <span
-            className="tabular leading-none"
+            className="tabular relative z-[1] leading-none"
             style={{
               fontSize: '0.62rem',
               marginTop: '0.15rem',

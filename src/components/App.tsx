@@ -59,6 +59,16 @@ export const App = (): JSX.Element => {
     return () => window.removeEventListener('keydown', onKey);
   }, [anyOverlayOpen, closeTopOverlay]);
 
+  // Lock to portrait where the platform allows it (installed PWA / Android
+  // fullscreen). It throws in a plain browser tab and on iOS — harmless; the
+  // CSS guard below covers those cases.
+  useEffect(() => {
+    const so = screen.orientation as unknown as {
+      lock?: (o: string) => Promise<void>;
+    };
+    void so.lock?.('portrait').catch(() => undefined);
+  }, []);
+
   return (
     <div
       className="relative flex min-h-0 flex-1 flex-col"
@@ -84,6 +94,32 @@ export const App = (): JSX.Element => {
       <StatsPanel />
       <WinModal />
       <ConfirmDialog />
+
+      {/* Portrait-only guard: shown by CSS when a phone is held in landscape
+          and the orientation lock above isn't honored (e.g. browser tab). */}
+      <div className="rotate-guard" role="alert">
+        <svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
+          <rect
+            x="7"
+            y="2"
+            width="10"
+            height="20"
+            rx="2"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+          <path
+            d="M3 8a9 9 0 0118 0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+        </svg>
+        <p>Rotate your device to portrait to play.</p>
+      </div>
     </div>
   );
 };

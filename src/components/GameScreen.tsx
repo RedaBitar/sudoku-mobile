@@ -29,7 +29,12 @@ export const GameScreen = (): JSX.Element => {
   useEffect(() => {
     if (!feedback || feedback.id === lastHaptic.current) return;
     lastHaptic.current = feedback.id;
-    if (feedback.solved || feedback.clearedCells.length > 0) haptics('success');
+    if (
+      feedback.solved ||
+      feedback.clearedCells.length > 0 ||
+      feedback.completedDigit !== null
+    )
+      haptics('success');
     else if (feedback.mistake) haptics('error');
     else haptics('light');
   }, [feedback, haptics]);
