@@ -38,12 +38,15 @@ const ToggleRow = ({
       )}
     </span>
     <span
-      className="relative h-6 w-11 shrink-0 rounded-full transition"
-      style={{ background: checked ? 'var(--accent)' : 'var(--line)' }}
+      className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+      style={{ background: checked ? 'var(--accent)' : 'var(--line-box)' }}
     >
       <span
         className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all"
-        style={{ left: checked ? '1.375rem' : '0.125rem' }}
+        style={{
+          left: checked ? '1.375rem' : '0.125rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        }}
       />
     </span>
   </button>
@@ -148,22 +151,25 @@ export const SettingsSheet = (): JSX.Element => {
       <Section title="Highlighting">
         <ToggleRow
           label="Highlight row, column & box"
+          hint="Shade the cells that share a line or box with the one you tap."
           checked={settings.peerHighlight}
           onChange={bind('peerHighlight')}
         />
         <ToggleRow
           label="Highlight same digit"
+          hint="Shade every cell holding the same number as the selected one."
           checked={settings.sameValueHighlight}
           onChange={bind('sameValueHighlight')}
         />
         <ToggleRow
           label="Grey out completed digits"
+          hint="Dim a number on the pad once all nine are placed."
           checked={settings.greyCompletedDigits}
           onChange={bind('greyCompletedDigits')}
         />
         <ToggleRow
           label="Show remaining count"
-          hint="The small count under each pad digit. Off centers the digit."
+          hint="Show how many of each number are still left to place."
           checked={settings.showRemainingCount}
           onChange={bind('showRemainingCount')}
         />
