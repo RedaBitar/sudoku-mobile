@@ -11,6 +11,7 @@ export interface Settings {
   sameValueHighlight: boolean; // same digit across the grid
   autoRemoveCandidates: boolean; // strip placed digit from peer notes
   greyCompletedDigits: boolean; // pad button greyed at 0 remaining
+  showRemainingCount: boolean; // small "n left" badge under each pad digit
   haptics: boolean;
   showTimer: boolean;
   autoFillNotesEnabled: boolean; // expose the "fill all notes" control
@@ -49,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sameValueHighlight: true,
   autoRemoveCandidates: true,
   greyCompletedDigits: true,
+  showRemainingCount: true,
   haptics: true,
   showTimer: true,
   autoFillNotesEnabled: false,

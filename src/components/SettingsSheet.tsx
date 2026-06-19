@@ -161,6 +161,12 @@ export const SettingsSheet = (): JSX.Element => {
           checked={settings.greyCompletedDigits}
           onChange={bind('greyCompletedDigits')}
         />
+        <ToggleRow
+          label="Show remaining count"
+          hint="The small count under each pad digit. Off centers the digit."
+          checked={settings.showRemainingCount}
+          onChange={bind('showRemainingCount')}
+        />
       </Section>
 
       <Section title="Feedback">

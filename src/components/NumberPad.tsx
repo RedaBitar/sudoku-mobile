@@ -10,6 +10,7 @@ export const NumberPad = (): JSX.Element => {
   const paused = useGameStore((s) => s.paused);
 
   const greyCompleted = useSettingsStore((s) => s.settings.greyCompletedDigits);
+  const showRemaining = useSettingsStore((s) => s.settings.showRemainingCount);
 
   const remaining = useMemo(() => computeRemaining(board), [board]);
 
@@ -48,12 +49,18 @@ export const NumberPad = (): JSX.Element => {
         >
           {d}
         </span>
-        <span
-          className="tabular leading-none"
-          style={{ fontSize: '0.62rem', marginTop: '0.15rem', color: 'var(--muted-text)' }}
-        >
-          {left}
-        </span>
+        {showRemaining && (
+          <span
+            className="tabular leading-none"
+            style={{
+              fontSize: '0.62rem',
+              marginTop: '0.15rem',
+              color: 'var(--muted-text)',
+            }}
+          >
+            {left}
+          </span>
+        )}
       </button>
     );
   };
