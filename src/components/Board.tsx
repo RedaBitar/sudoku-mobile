@@ -1,0 +1,116 @@
+import { useMemo } from 'react';
+import {
+  computeConflicts,
+  computeWrong,
+  useGameStore,
+} from '../store/gameStore';
+import { peersOf } from '../engine/peers';
+import { useSettingsStore } from '../store/settingsStore';
+import { Cell } from './Cell';
+
+const usePrefersReducedMotion = (): boolean =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+export const Board = (): JSX.Element => {
+  const board = useGameStore((s) => s.board);
+  const selectedIndex = useGameStore((s) => s.selectedIndex);
+  const paused = useGameStore((s) => s.paused);
+  const selectCell = useGameStore((s) => s.selectCell);
+  const resume = useGameStore((s) => s.resume);
+
+  const settings = useSettingsStore((s) => s.settings);
+  const reducedMotion = usePrefersReducedMotion();
+
+  // Error cells: union of rule-based conflicts and (optionally) wrong-vs-
+  // solution. Each tier is gated by its own setting.
+  const errorSet = useMemo(() => {
+    const set = new Set<number>();
+    if (settings.mistakeDetection) {
+      for (const i of computeConflicts(board)) set.add(i);
+    }
+    if (settings.compareToSolution) {
+      const solution = useGameStore.getState().solution;
+      for (const i of computeWrong(board, solution)) set.add(i);
+    }
+    return set;
+  }, [board, settings.mistakeDetection, settings.compareToSolution]);
+
+  // Peers (row/col/box) of the current selection.
+  const peerSet = useMemo(() => {
+    if (selectedIndex === null || !settings.peerHighlight) return null;
+    return new Set(peersOf(selectedIndex));
+  }, [selectedIndex, settings.peerHighlight]);
+
+  const selectedValue =
+    selectedIndex !== null ? board[selectedIndex]?.value ?? 0 : 0;
+
+  const emphasizeCandidate =
+    settings.sameValueHighlight && selectedValue !== 0 ? selectedValue : 0;
+
+  return (
+    <div
+      className="relative aspect-square w-full select-none overflow-hidden rounded-2xl"
+      style={{
+        background: 'var(--surface)',
+        border: '2px solid var(--line-box)',
+        boxShadow: 'var(--shadow)',
+        containerType: 'inline-size',
+      }}
+    >
+      <div
+        className="grid h-full w-full"
+        style={{
+          gridTemplateColumns: 'repeat(9, 1fr)',
+          gridTemplateRows: 'repeat(9, 1fr)',
+          filter: paused ? 'blur(10px)' : undefined,
+          pointerEvents: paused ? 'none' : undefined,
+        }}
+      >
+        {board.map((cell, i) => {
+          const selected = selectedIndex === i;
+          const error = errorSet.has(i);
+          const sameValue =
+            settings.sameValueHighlight &&
+            selectedValue !== 0 &&
+            cell.value === selectedValue;
+          const peer = peerSet?.has(i) ?? false;
+          return (
+            <Cell
+              key={i}
+              index={i}
+              value={cell.value}
+              given={cell.given}
+              candidates={cell.candidates}
+              selected={selected}
+              error={error}
+              sameValue={sameValue}
+              peer={peer}
+              emphasizeCandidate={emphasizeCandidate}
+              reducedMotion={reducedMotion}
+              onSelect={selectCell}
+            />
+          );
+        })}
+      </div>
+
+      {paused && (
+        <button
+          type="button"
+          onClick={resume}
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 animate-fade-in"
+          style={{
+            background: 'color-mix(in srgb, var(--surface) 78%, transparent)',
+            color: 'var(--muted-text)',
+          }}
+          aria-label="Paused. Tap to resume."
+        >
+          <svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5v14l11-7z" fill="var(--accent)" />
+          </svg>
+          <span className="text-sm font-medium">Paused — tap to resume</span>
+        </button>
+      )}
+    </div>
+  );
+};
